@@ -1,66 +1,68 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client";
+import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
+import ControlPanel from "@/components/ui/ControlPanel";
+import CameraMenu from "@/components/ui/CameraMenu";
+import { useVenueStore } from "@/store/venueStore";
+import { X } from "lucide-react";
+
+// Dynamically import the 3D scene with SSR disabled to prevent Node environment reference errors
+const VenueScene = dynamic(() => import("@/components/venue/VenueScene"), {
+  ssr: false,
+  loading: () => (
+    <div className="loading-screen">
+      <div className="spinner" />
+      <p style={{ fontFamily: "monospace", letterSpacing: "0.1em" }}>LOADING 3D SCENE...</p>
+    </div>
+  ),
+});
 
 export default function Home() {
+  const selected = useVenueStore((s) => s.selected);
+  const select = useVenueStore((s) => s.select);
+  const setLeft = useVenueStore((s) => s.setLeftOpen);
+  const setRight = useVenueStore((s) => s.setRightOpen);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    // On mobile devices (width < 768px), auto-collapse the panels on mount
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setLeft(false);
+      setRight(false);
+    }
+  }, [setLeft, setRight]);
+
+  if (!mounted) return null;
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
+    <div className="app-container">
+      {/* 3D Venue Canvas */}
+      <VenueScene />
+
+      {/* Overlapping UI Panels */}
+      <ControlPanel />
+      <CameraMenu />
+
+      {/* Selected Item Detail Panel */}
+      {selected && (
+        <div className="detail-card">
+          <div className="detail-head">
+            <div>
+              <h2 className="detail-title">{selected.title}</h2>
+              {selected.dim && <span className="detail-dim">{selected.dim}</span>}
+            </div>
+            <button
+              className="icon-btn"
+              onClick={() => select(null)}
+              title="Close Details"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              <X size={16} />
+            </button>
+          </div>
+          <p className="detail-desc">{selected.desc}</p>
         </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      )}
     </div>
   );
 }
